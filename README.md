@@ -81,3 +81,13 @@ Compare two squads of a specific team using a team short name.
 ```text
 !claim uaf 2 4
 ```
+
+### Example configuration
+```json
+{
+  "plugin": "Claim",
+  "enabled": true,
+  "commandPrefix": "claim",
+  "onlySquadLeader": false
+}
+```

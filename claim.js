@@ -11,10 +11,15 @@ export default class Claim extends BasePlugin {
 
     static get optionsSpecification() {
         return {
-            command: {
+            commandPrefix: {
                 required: false,
                 description: 'Prefix of the claim command',
-                default: "claim"
+                default: 'claim',
+            },
+            onlySquadLeader: {
+                required: false,
+                description: 'Only allow squad leaders to use the command',
+                default: false,
             },
         };
     }
@@ -25,177 +30,198 @@ export default class Claim extends BasePlugin {
         this.onSquadCreated = this.onSquadCreated.bind(this);
         this.onChatCommand = this.onChatCommand.bind(this);
         this.getFactionId = this.getFactionId.bind(this);
+        this.onRoundEnded = this.onRoundEnded.bind(this);
 
-        this.createdSquadsTeam = {};
-        this.createdSquadsTeam[1] = [];
-        this.createdSquadsTeam[2] = [];
+        this.createdSquadsTeam = {
+            1: [],
+            2: [],
+        };
     }
 
     async mount() {
-        this.server.on(`CHAT_COMMAND:${this.options.command}`, this.onChatCommand);
+        this.server.on(`CHAT_COMMAND:${this.options.commandPrefix}`, this.onChatCommand);
         this.server.on('SQUAD_CREATED', this.onSquadCreated);
-        this.server.on('ROUND_ENDED', this.onRoundEnded)
+        this.server.on('ROUND_ENDED', this.onRoundEnded);
     }
 
     async unmount() {
-        this.server.removeEventListener(`CHAT_COMMAND:${this.options.command}`, this.onChatCommand);
+        this.server.removeEventListener(`CHAT_COMMAND:${this.options.commandPrefix}`, this.onChatCommand);
         this.server.removeEventListener('SQUAD_CREATED', this.onSquadCreated);
-        this.server.removeEventListener('ROUND_ENDED', this.onRoundEnded)
+        this.server.removeEventListener('ROUND_ENDED', this.onRoundEnded);
     }
 
     async onRoundEnded() {
-        this.createdSquadsTeam = {};
-        this.createdSquadsTeam[1] = [];
-        this.createdSquadsTeam[2] = [];
+        this.createdSquadsTeam = {
+            1: [],
+            2: [],
+        };
     }
 
     async onSquadCreated(info) {
         const teamID = info.player.squad.teamID;
         const squadID = info.player.squad.squadID;
 
+        // only track custom named squads
+        if (/^Squad\s+\d+$/.test(info.squadName)) {
+            delete this.createdSquadsTeam[teamID][squadID];
+            return;
+        }
+
         const squadCreatedEventData = {
             squadName: info.squadName,
             teamID: teamID,
             squadID: squadID,
             steamID: info.player.steamID,
-            time: info.time
+            time: info.time,
         };
 
         this.createdSquadsTeam[teamID][squadID] = squadCreatedEventData;
     }
 
     async onChatCommand(info) {
-        await this.server.updateSquadList();
-
-        const isAdmin = info.chat === "ChatAdmin";
+        const isAdmin = info.chat === 'ChatAdmin';
         const message = info.message.toLowerCase();
-
         const commandSplit = message.trim().split(' ');
 
-        if (commandSplit[0] === 'help') {
+        if (this.options.onlySquadLeader && info.player.isLeader === false && !isAdmin) {
+            this.server.rcon.warn(info.steamID, 'Only squad leaders can use this command.');
+            return;
+        }
+
+        const subCommand = commandSplit[0];
+
+        if (subCommand === 'help') {
             if (isAdmin) {
-                await this.server.rcon.warn(info.steamID, this.getHelpMessageForAdmin());
-                await this.server.rcon.warn(info.steamID, this.getHelpMessageExamplesForAdmin());
+                this.server.rcon.warn(info.steamID, this.getHelpMessageForAdmin());
+                this.server.rcon.warn(info.steamID, this.getHelpMessageExamplesForAdmin());
             } else {
-                await this.server.rcon.warn(info.steamID, this.getHelpMessageForPlayer());
-                await this.server.rcon.warn(info.steamID, this.getHelpMessageExamplesForPlayer());
+                this.server.rcon.warn(info.steamID, this.getHelpMessageForPlayer());
+                this.server.rcon.warn(info.steamID, this.getHelpMessageExamplesForPlayer());
             }
             return;
         }
+
+        await this.server.updateSquadList();
 
         let teamID = null;
         if (isNaN(commandSplit[0]) && commandSplit[0].length >= 1 && isNaN(commandSplit[1])) {
             // check all squads in a specific team
 
             if (!isAdmin) {
-                await this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
+                this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
                 return;
             }
-
             let teamName = commandSplit[0];
-            if (teamName === 'other') {
-                teamID = info.player.teamID === 1 ? 2 : 1;
-            } else {
-                teamName = teamName.slice(0, 4);
-                let teamID = await this.getFactionId(teamName);
-                if (teamID === null) {
-                    await this.server.rcon.warn(info.steamID, 'Faction not found.');
-                    return;
-                }
-            }
+
+            teamID = await this.getTeamIdFromInput(teamName, info);
 
             const squads = this.createdSquadsTeam[teamID];
-            await this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
+            this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
 
         } else if (isNaN(commandSplit[0]) && commandSplit[0].length > 1 && !isNaN(commandSplit[1]) && !isNaN(commandSplit[2])) {
             // check two squad in a specific team
 
             if (!isAdmin) {
-                await this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
-                return;
-            }
-            let teamName = commandSplit[0].slice(0, 4);
-            let squadOne = commandSplit[1];
-            let squadTwo = commandSplit[2];
-
-            if (squadOne === squadTwo) {
-                await this.server.rcon.warn(info.steamID, 'Please provide two different squad IDs.');
+                this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
                 return;
             }
 
-            if (teamName === 'other') {
-                teamID = info.player.teamID === 1 ? 2 : 1;
-            } else {
-                teamName = teamName.slice(0, 4);
-                let teamID = await this.getFactionId(teamName);
-                if (teamID === null) {
-                    await this.server.rcon.warn(info.steamID, 'Faction not found.');
-                    return;
-                }
-            }
+            const teamNameInput = commandSplit[0];
+            const squadOneID = commandSplit[1];
+            const squadTwoID = commandSplit[2];
 
-            if (this.createdSquadsTeam[teamID][squadOne] === undefined) {
-                await this.server.rcon.warn(info.steamID, 'Sqaud one with ID: ' + squadOne + ' not found in tean: ' + teamName);
+            if (squadOneID === squadTwoID) {
+                this.server.rcon.warn(info.steamID, 'Please provide two different squad IDs.');
                 return;
             }
 
-            if (this.createdSquadsTeam[teamID][squadTwo] === undefined) {
-                await this.server.rcon.warn(info.steamID, 'Sqaud two with ID: ' + squadTwo + ' not found in tean: ' + teamName);
+            teamID = await this.getTeamIdFromInput(teamNameInput, info);
+
+            if (this.createdSquadsTeam[teamID][squadOneID] === undefined) {
+                this.server.rcon.warn(
+                    info.steamID,
+                    `Custom Squad ID: ${squadOneID} not found in team: ${teamNameInput}`
+                );
                 return;
             }
 
-            await this.server.rcon.warn(info.steamID, this.getSquadListBeautified([
-                this.createdSquadsTeam[teamID][squadOne], this.createdSquadsTeam[teamID][squadTwo]
+            if (this.createdSquadsTeam[teamID][squadTwoID] === undefined) {
+                this.server.rcon.warn(
+                    info.steamID,
+                    `Custom Squad ID: ${squadTwoID} not found in team: ${teamNameInput}`
+                );
+                return;
+            }
+
+            this.server.rcon.warn(info.steamID, this.getSquadListBeautified([
+                this.createdSquadsTeam[teamID][squadOneID], this.createdSquadsTeam[teamID][squadTwoID]
             ]));
 
         } else if (!isNaN(commandSplit[0]) && !isNaN(commandSplit[1])) {
             // check two squad in your own team
-            let squadOne = commandSplit[0];
-            let squadTwo = commandSplit[1];
+            let squadOneID = commandSplit[0];
+            let squadTwoID = commandSplit[1];
             teamID = info.player.teamID;
 
-            if (squadOne === squadTwo) {
-                await this.server.rcon.warn(info.steamID, 'Please provide two different squad IDs.');
+            if (squadOneID === squadTwoID) {
+                this.server.rcon.warn(info.steamID, 'Please provide two different squad IDs.');
                 return;
             }
 
-            if (this.createdSquadsTeam[teamID][squadOne] === undefined) {
-                await this.server.rcon.warn(info.steamID, 'Sqaud one with ID: ' + squadOne + ' not found in your team.');
+            if (this.createdSquadsTeam[teamID][squadOneID] === undefined) {
+                this.server.rcon.warn(
+                    info.steamID,
+                    `Custom Squad ID: ${squadOneID} not found in your team`
+                );
                 return;
             }
 
-            if (this.createdSquadsTeam[teamID][squadTwo] === undefined) {
-                await this.server.rcon.warn(info.steamID, 'Sqaud two with ID: ' + squadTwo + ' not found in your team.');
+            if (this.createdSquadsTeam[teamID][squadTwoID] === undefined) {
+                this.server.rcon.warn(
+                    info.steamID,
+                    `Custom Squad ID: ${squadTwoID} not found in your team`
+                );
                 return;
             }
 
-            await this.server.rcon.warn(info.steamID, this.getSquadListBeautified([
-                this.createdSquadsTeam[teamID][squadOne], this.createdSquadsTeam[teamID][squadTwo]
-            ]));
-
+            this.server.rcon.warn(
+                info.steamID,
+                this.getSquadListBeautified([
+                    this.createdSquadsTeam[teamID][squadOneID],
+                    this.createdSquadsTeam[teamID][squadTwoID],
+                ])
+            );
         } else {
             // check all squads in your own team
             teamID = info.player.teamID;
-            let squads = this.createdSquadsTeam[teamID];
-            await this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
+            const squads = this.createdSquadsTeam[teamID];
+
+            this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
         }
     }
 
     getSquadListBeautified(squads) {
-        let squadListString = "";
+        let squadListString = '';
 
-        if (!squads || Object.keys(squads).length === 0) return "No squads have been created yet.";
+        if (!squads || Object.keys(squads).length === 0) {
+            return 'No custom squads have been created yet.';
+        }
 
-        const sortedSquads = Object.values(squads).sort((a, b) => {
-            return new Date(a.time) - new Date(b.time);
-        });
+        const sortedSquads = Object
+            .values(squads)
+            .sort((a, b) => new Date(a.time) - new Date(b.time));
 
-        sortedSquads.forEach(item => {
+        let counter = 1;
+
+        sortedSquads.forEach((item) => {
             if (!this.doesSquadExist(item.teamID, item.squadID)) {
                 delete squads[item.squadID];
                 return;
             }
-            squadListString += `Name: ${item.squadName.substring(0, 10)}, ID: ${item.squadID}, Created at: ${this.formatTime(item.time)}\n`;
+
+            const shortName = item.squadName.substring(0, 10);
+            squadListString += `${counter}.Squad ${item.squadID}[${shortName}], created ${this.formatTime(item.time)}\n`;
+            counter += 1;
         });
 
         return squadListString;
@@ -203,20 +229,23 @@ export default class Claim extends BasePlugin {
 
     formatTime(time) {
         const date = new Date(time);
-        const h = String(date.getHours()).padStart(2, '0');
-        const m = String(date.getMinutes()).padStart(2, '0');
-        const s = String(date.getSeconds()).padStart(2, '0');
-        return `${h}:${m}:${s}`;
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return `${hours}:${minutes}:${seconds}`;
     }
 
     doesSquadExist(teamID, squadID) {
-        return this.server.squads.some(squad => squad.squadID == squadID && squad.teamID == teamID);
+        return this.server.squads.some(
+            (squad) => squad.squadID == squadID && squad.teamID == teamID
+        );
     }
 
     getHelpMessageForPlayer() {
         return [
             '!claim -> all squads in own team',
-            '!claim <id1> <id2> -> compare two squads',
+            '!claim id1 id2 -> compare two squads',
         ].join('\n');
     }
 
@@ -224,7 +253,7 @@ export default class Claim extends BasePlugin {
         return [
             'Examples:',
             '!claim',
-            '!claim 1 3'
+            '!claim 1 3',
         ].join('\n');
     }
 
@@ -245,16 +274,41 @@ export default class Claim extends BasePlugin {
             '!claim 1 3',
             '!claim usa',
             '!claim other',
-            '!claim rgf 1 3'
+            '!claim rgf 1 3',
         ].join('\n');
     }
 
-    async getFactionId(team) {
+    async getFactionId(teamPrefix) {
         await this.server.updatePlayerList();
 
-        const firstPlayer = this.server.players.find(p => p.role.toLowerCase().startsWith(team.toLowerCase()))
-        if (firstPlayer) return firstPlayer.teamID
+        const lowerTeamPrefix = teamPrefix.toLowerCase();
+        const firstPlayer = this.server.players.find((p) =>
+            p.role.toLowerCase().startsWith(lowerTeamPrefix)
+        );
+
+        if (firstPlayer) {
+            return firstPlayer.teamID;
+        }
 
         return null;
+    }
+
+    async getTeamIdFromInput(teamInput, info) {
+        if (teamInput === 'other') {
+            return info.player.teamID === 1 ? 2 : 1;
+        }
+
+        const teamNamePrefix = teamInput.slice(0, 4);
+        const teamID = await this.getFactionId(teamNamePrefix);
+
+        if (teamID === null) {
+            this.server.rcon.warn(
+                info.steamID,
+                `Faction not found or no players in team: ${teamNamePrefix}`
+            );
+            return null;
+        }
+
+        return teamID;
     }
 }
