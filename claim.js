@@ -88,9 +88,7 @@ export default class Claim extends BasePlugin {
             return;
         }
 
-        const subCommand = commandSplit[0];
-
-        if (subCommand === 'help') {
+        if (commandSplit[0] === 'help') {
             if (isAdmin) {
                 this.server.rcon.warn(info.steamID, this.getHelpMessageForAdmin());
                 this.server.rcon.warn(info.steamID, this.getHelpMessageExamplesForAdmin());
@@ -158,7 +156,8 @@ export default class Claim extends BasePlugin {
             ]));
 
         } else if (!isNaN(commandSplit[0]) && !isNaN(commandSplit[1])) {
-            // check two squad in your own team
+            // check two squad in own team
+
             let squadOneID = commandSplit[0];
             let squadTwoID = commandSplit[1];
             teamID = info.player.teamID;
@@ -192,7 +191,8 @@ export default class Claim extends BasePlugin {
                 ])
             );
         } else {
-            // check all squads in your own team
+            // check all squads in own team
+
             teamID = info.player.teamID;
             const squads = this.createdSquadsTeam[teamID];
 
