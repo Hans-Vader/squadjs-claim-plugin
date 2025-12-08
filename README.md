@@ -1,6 +1,6 @@
 # squadjs-claim-plugin
 
-SquadJS plugin to track, display, and compare created custom squads on a Squad game server.
+SquadJS plugin for displaying and comparing created custom squads based on their creation time.
 
 This can be useful for in-game administrators to check vehicle claims when vehicle claim rules are enabled on the server.
 
