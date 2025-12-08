@@ -4,9 +4,9 @@ SquadJS plugin for displaying and comparing created custom squads based on their
 
 This can be useful for in-game administrators to check vehicle claims when vehicle claim rules are enabled on the server.
 
-## User Commands
+The squad list is deterministically sorted by creation timestamp (ascending), so the oldest squad appears first.
 
-The squad list is always sorted by squad creation time, with the oldest squads displayed first.
+## User Commands
 
 ### `!claim help`
 Shows a short overview of all available `!claim` options.
