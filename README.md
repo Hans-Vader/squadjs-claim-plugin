@@ -47,7 +47,7 @@ Compares two squads in the player's own team and displays their information.
 
 ### `!claim {team_short_name}|other`
 
-Shows all currently tracked squads of a specific team.
+Displays all squads currently being tracked for a specific team or simply for the opposing team with "other".
 
 **Examples:**
 
@@ -68,7 +68,7 @@ Shows all currently tracked squads of a specific team.
 
 ### `!claim {team_short_name}|other {squadID_1} {squadID_2}`
 
-Compare two squads of a specific team using a team short name.
+Compare two squads of a specific team or simply for the opposing team with "other".
 
 **Examples:**
 
