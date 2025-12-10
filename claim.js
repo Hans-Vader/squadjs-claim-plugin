@@ -114,7 +114,8 @@ export default class Claim extends BasePlugin {
             teamID = await this.getTeamIdFromInput(teamName, info);
 
             const squads = this.createdSquadsTeam[teamID];
-            this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
+            const lines = this.getSquadListBeautified(squads);
+            this.warnInChunks(info.steamID, lines);
 
         } else if (isNaN(commandSplit[0]) && commandSplit[0].length > 1 && !isNaN(commandSplit[1]) && !isNaN(commandSplit[2])) {
             // check two squad in a specific team
@@ -151,9 +152,11 @@ export default class Claim extends BasePlugin {
                 return;
             }
 
-            this.server.rcon.warn(info.steamID, this.getSquadListBeautified([
-                this.createdSquadsTeam[teamID][squadOneID], this.createdSquadsTeam[teamID][squadTwoID]
-            ]));
+            const lines = this.getSquadListBeautified([
+                this.createdSquadsTeam[teamID][squadOneID],
+                this.createdSquadsTeam[teamID][squadTwoID],
+            ]);
+            this.warnInChunks(info.steamID, lines);
 
         } else if (!isNaN(commandSplit[0]) && !isNaN(commandSplit[1])) {
             // check two squad in own team
@@ -183,28 +186,25 @@ export default class Claim extends BasePlugin {
                 return;
             }
 
-            this.server.rcon.warn(
-                info.steamID,
-                this.getSquadListBeautified([
-                    this.createdSquadsTeam[teamID][squadOneID],
-                    this.createdSquadsTeam[teamID][squadTwoID],
-                ])
-            );
+            const lines = this.getSquadListBeautified([
+                this.createdSquadsTeam[teamID][squadOneID],
+                this.createdSquadsTeam[teamID][squadTwoID],
+            ]);
+            this.warnInChunks(info.steamID, lines);
         } else {
             // check all squads in own team
 
             teamID = info.player.teamID;
             const squads = this.createdSquadsTeam[teamID];
 
-            this.server.rcon.warn(info.steamID, this.getSquadListBeautified(squads));
+            const lines = this.getSquadListBeautified(squads);
+            this.warnInChunks(info.steamID, lines);
         }
     }
 
     getSquadListBeautified(squads) {
-        let squadListString = '';
-
         if (!squads || Object.keys(squads).length === 0) {
-            return 'No custom squads have been created yet.';
+            return ['No custom squads have been created yet.'];
         }
 
         const sortedSquads = Object
@@ -212,6 +212,7 @@ export default class Claim extends BasePlugin {
             .sort((a, b) => new Date(a.time) - new Date(b.time));
 
         let counter = 1;
+        const lines = [];
 
         sortedSquads.forEach((item) => {
             if (!this.doesSquadExist(item.teamID, item.squadID)) {
@@ -220,11 +221,24 @@ export default class Claim extends BasePlugin {
             }
 
             const shortName = item.squadName.substring(0, 10);
-            squadListString += `${counter}.Squad ${item.squadID}[${shortName}], created ${this.formatTime(item.time)}\n`;
+            lines.push(
+                `${counter}.Squad ${item.squadID}[${shortName}], created ${this.formatTime(item.time)}`
+            );
             counter += 1;
         });
 
-        return squadListString;
+        return lines;
+    }
+
+    warnInChunks(steamID, lines, chunkSize = 5) {
+        if (!Array.isArray(lines) || lines.length === 0) {
+            return;
+        }
+
+        for (let i = 0; i < lines.length; i += chunkSize) {
+            const chunk = lines.slice(i, i + chunkSize);
+            this.server.rcon.warn(steamID, chunk.join('\n'));
+        }
     }
 
     formatTime(time) {
