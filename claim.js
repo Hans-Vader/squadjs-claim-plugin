@@ -26,6 +26,16 @@ export default class Claim extends BasePlugin {
                 description: 'Delay in seconds between warns for big squad list',
                 default: 6,
             },
+            adminCooldownSeconds: {
+                required: false,
+                description: 'Cooldown in seconds between admin uses of the command',
+                default: 5,
+            },
+            playerCooldownSeconds: {
+                required: false,
+                description: 'Cooldown in seconds between player uses of the command',
+                default: 15,
+            },
         };
     }
 
@@ -41,6 +51,9 @@ export default class Claim extends BasePlugin {
             1: [],
             2: [],
         };
+
+        // Cooldown-Tracking wie in anderen SquadJS-Plugins (pro SteamID)
+        this.lastCommandUsage = {}; // { steamID: timestampMs }
     }
 
     async mount() {
@@ -60,6 +73,8 @@ export default class Claim extends BasePlugin {
             1: [],
             2: [],
         };
+        // Cooldowns beim Rundenende zurücksetzen
+        this.lastCommandUsage = {};
     }
 
     async onSquadCreated(info) {
@@ -85,6 +100,32 @@ export default class Claim extends BasePlugin {
 
     async onChatCommand(info) {
         const isAdmin = info.chat === 'ChatAdmin';
+        const now = Date.now();
+        const steamID = info.steamID;
+
+        // Cooldown based on user role
+        const cooldownSeconds = isAdmin
+            ? Number(this.options.adminCooldownSeconds) || 0
+            : Number(this.options.playerCooldownSeconds) || 0;
+        const cooldownMs = cooldownSeconds * 1000;
+
+        if (cooldownMs > 0) {
+            const lastUsed = this.lastCommandUsage[steamID] || 0;
+            const diff = now - lastUsed;
+
+            if (diff < cooldownMs) {
+                const remainingSec = Math.ceil((cooldownMs - diff) / 1000);
+                this.server.rcon.warn(
+                    steamID,
+                    `Please wait ${remainingSec}s before using !${this.options.commandPrefix} again.`
+                );
+                return;
+            }
+        }
+
+        // save last usage time
+        this.lastCommandUsage[steamID] = now;
+
         const message = info.message.toLowerCase();
         const commandSplit = message.trim().split(' ');
 
