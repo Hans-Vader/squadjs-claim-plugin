@@ -21,6 +21,11 @@ export default class Claim extends BasePlugin {
                 description: 'Only allow squad leaders to use the command',
                 default: false,
             },
+            warnDelaySeconds: {
+                required: false,
+                description: 'Delay in seconds between warns for big squad list',
+                default: 6,
+            },
         };
     }
 
@@ -230,14 +235,21 @@ export default class Claim extends BasePlugin {
         return lines;
     }
 
-    warnInChunks(steamID, lines, chunkSize = 5) {
+    async warnInChunks(steamID, lines, chunkSize = 5) {
         if (!Array.isArray(lines) || lines.length === 0) {
             return;
         }
 
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const delayMs = (Number(this.options.warnDelaySeconds) || 6) * 1000;
+
         for (let i = 0; i < lines.length; i += chunkSize) {
             const chunk = lines.slice(i, i + chunkSize);
             this.server.rcon.warn(steamID, chunk.join('\n'));
+
+            if (delayMs > 0 && i + chunkSize < lines.length) {
+                await sleep(delayMs);
+            }
         }
     }
 

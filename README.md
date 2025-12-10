@@ -82,12 +82,22 @@ Compare two squads of a specific team using a team short name.
 !claim uaf 2 4
 ```
 
+## Configuration
+
+### Options
+- `plugin` (string): Must be set to `"Claim"`.
+- `enabled` (boolean, default: `true`): Enable or disable the plugin.
+- `commandPrefix` (string, default: `"claim"`): Chat command prefix.
+- `onlySquadLeader` (boolean, default: `false`): If `true`, only squad leaders can use `!claim` (admins are always allowed).
+- `warnDelaySeconds` (number, default: `6`): Delay in seconds between warns for big squad list.
+
 ### Example configuration
 ```json
 {
   "plugin": "Claim",
   "enabled": true,
   "commandPrefix": "claim",
-  "onlySquadLeader": false
+  "onlySquadLeader": false,
+  "warnDelaySeconds": 6
 }
 ```
