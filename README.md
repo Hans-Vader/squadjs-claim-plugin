@@ -88,7 +88,7 @@ Compare two squads of a specific team or simply for the opposing team with "othe
 - `plugin` (string): Must be set to `"Claim"`.
 - `enabled` (boolean, default: `true`): Enable or disable the plugin.
 - `commandPrefix` (string, default: `"claim"`): Chat command prefix.
-- `onlySquadLeader` (boolean, default: `false`): If `true`, only squad leaders can use `!claim` (admins are always allowed).
+- `onlySquadLeader` (boolean, default: `false`): If `true`, only squad leaders can use the command (admins are always allowed).
 - `warnDelaySeconds` (number, default: `6`): Delay in seconds between warns for big squad list.
 
 ### Example configuration

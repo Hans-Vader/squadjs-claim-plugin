@@ -2,7 +2,7 @@ import BasePlugin from './base-plugin.js';
 
 export default class Claim extends BasePlugin {
     static get description() {
-        return 'Plugin to track and display created squads on the server.';
+        return 'Plugin to track and display created custom squads on the server.';
     }
 
     static get defaultEnabled() {
@@ -114,9 +114,12 @@ export default class Claim extends BasePlugin {
                 this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
                 return;
             }
-            let teamName = commandSplit[0];
+            let teamNameInput = commandSplit[0];
 
-            teamID = await this.getTeamIdFromInput(teamName, info);
+            teamID = await this.getTeamIdFromInput(teamNameInput, info);
+            if (teamID === null) {
+                return;
+            }
 
             const squads = this.createdSquadsTeam[teamID];
             const lines = this.getSquadListBeautified(squads);
@@ -140,6 +143,9 @@ export default class Claim extends BasePlugin {
             }
 
             teamID = await this.getTeamIdFromInput(teamNameInput, info);
+            if (teamID === null) {
+                return;
+            }
 
             if (this.createdSquadsTeam[teamID][squadOneID] === undefined) {
                 this.server.rcon.warn(
