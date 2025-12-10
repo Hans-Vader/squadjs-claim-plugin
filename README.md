@@ -1,12 +1,12 @@
 # squadjs-claim-plugin
 
-SquadJS plugin to track, display, and compare created squads on a Squad game server.
+SquadJS plugin for displaying and comparing created custom squads based on their creation time.
 
 This can be useful for in-game administrators to check vehicle claims when vehicle claim rules are enabled on the server.
 
-## User Commands
+The squad list is deterministically sorted by creation timestamp (ascending), so the oldest squad appears first.
 
-The squad list is sorted by squad creation time, with the oldest squads displayed first.
+## User Commands
 
 ### `!claim help`
 Shows a short overview of all available `!claim` options.
@@ -47,7 +47,7 @@ Compares two squads in the player's own team and displays their information.
 
 ### `!claim {team_short_name}|other`
 
-Shows all currently tracked squads of a specific team.
+Displays all squads currently being tracked for a specific team or simply for the opposing team with "other".
 
 **Examples:**
 
@@ -68,7 +68,7 @@ Shows all currently tracked squads of a specific team.
 
 ### `!claim {team_short_name}|other {squadID_1} {squadID_2}`
 
-Compare two squads of a specific team using a team short name.
+Compare two squads of a specific team or simply for the opposing team with "other".
 
 **Examples:**
 
