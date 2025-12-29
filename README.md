@@ -16,27 +16,16 @@ Shows a short overview of all available `!claim` options.
 
 ---
 
-### `!claim`
+### `!claim {squadID_1} {squadID_2} [squadID_3 ...]`
 
-Shows all currently tracked squads in the player's own team.
-
-```text
-!claim
-```
-
----
-
-### `!claim {squadID_1} {squadID_2}`
-
-Compares two squads in the player's own team and displays their information.
+Compares X number of squads in the player's own team and displays their information (oldest squad first).
 
 **Examples:**
 
 ```text
 !claim 1 3
-```
-```text
-!claim 2 5
+!claim 1 3 5
+!claim 2 4 6 1
 ```
 
 ## Admin Commands
@@ -45,42 +34,29 @@ Compares two squads in the player's own team and displays their information.
 
 ---
 
-### `!claim {team_short_name}|other`
+### `!claim {team_short_name}|other {squadID_1} {squadID_2} [squadID_3 ...]`
 
-Displays all squads currently being tracked for a specific team or simply for the opposing team with "other".
-
-**Examples:**
-
-```text
-!claim other
-```
-```text
-!claim usa
-```
-```text
-!claim rgf
-```
-```text
-!claim wpmc
-```
-
----
-
-### `!claim {team_short_name}|other {squadID_1} {squadID_2}`
-
-Compare two squads of a specific team or simply for the opposing team with "other".
+Compare X number of squads of a specific team or simply for the opposing team with "other".
 
 **Examples:**
 
 ```text
-!claim other 6 8
+!claim 1 3
+!claim other 1 3
+!claim other 1 3 5
+!claim rgf 1 3 7
+!claim usa 2 4 6 8
 ```
-```text
-!claim rgf 1 3
-```
-```text
-!claim uaf 2 4
-```
+
+## Configuration
+
+### Options
+- `plugin` (string): Must be set to `"Claim"`.
+- `enabled` (boolean, default: `true`): Enable or disable the plugin.
+- `commandPrefix` (string, default: `"claim"`): Chat command prefix.
+- `onlySquadLeader` (boolean, default: `false`): If `true`, only squad leaders can use the command (admins are always allowed, but still respect the admin cooldown).
+- `adminCooldownSeconds` (number, default: e.g. `3`): cooldown in seconds between usages in admin chat.
+- `playerCooldownSeconds` (number, default: e.g. `6`): cooldown in seconds for non-admin players between usages.
 
 ### Example configuration
 ```json
@@ -88,6 +64,8 @@ Compare two squads of a specific team or simply for the opposing team with "othe
   "plugin": "Claim",
   "enabled": true,
   "commandPrefix": "claim",
-  "onlySquadLeader": false
+  "onlySquadLeader": false,
+  "adminCooldownSeconds": 3,
+  "playerCooldownSeconds": 6
 }
 ```
