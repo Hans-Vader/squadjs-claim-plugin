@@ -172,7 +172,7 @@ export default class Claim extends BasePlugin {
         let teamInput = null;
 
         if (commandSplit.some(s => isNaN(s))) {
-            this.server.rcon.warn(info.steamID, 'Invalid squad ID provided.');
+            this.server.rcon.warn(info.steamID, 'Invalid squad ID provided. \nFor help use -> !' + this.options.commandPrefix + ' help');
             return;
         }
 
@@ -199,7 +199,7 @@ export default class Claim extends BasePlugin {
 
         // validate squad IDs
         if (squadIDs.length <= 1) {
-            this.server.rcon.warn(info.steamID, 'Please provide at least two squad IDs.');
+            this.server.rcon.warn(info.steamID, 'Please provide at least two squad IDs. \nFor help use -> !' + this.options.commandPrefix + ' help');
             return;
         }
 
@@ -230,10 +230,6 @@ export default class Claim extends BasePlugin {
     }
 
     getSquadListBeautified(squads) {
-        if (!squads || squads.length === 0) {
-            return ['No custom squads have been created yet.'];
-        }
-
         const sortedSquads = squads
             .sort((a, b) => new Date(a.time) - new Date(b.time));
 
