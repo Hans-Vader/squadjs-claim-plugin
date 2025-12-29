@@ -29,7 +29,7 @@ export default class Claim extends BasePlugin {
             playerCooldownSeconds: {
                 required: false,
                 description: 'Cooldown in seconds between player uses of the command',
-                default: 6,
+                default: 5,
             },
             debugPlugin: {
                 required: false,
@@ -171,22 +171,15 @@ export default class Claim extends BasePlugin {
         let squadIDs = [];
         let teamInput = null;
 
-        if (commandSplit.some(s => isNaN(s))) {
-            this.server.rcon.warn(info.steamID, 'Invalid squad ID provided. \nFor help use -> !' + this.options.commandPrefix + ' help');
-            return;
-        }
-
         if (commandSplit.length > 0 && isNaN(commandSplit[0])) {
             // team specifier
             if (!isAdmin) {
-                this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams.');
+                this.server.rcon.warn(info.steamID, 'Only admins can check squads of other teams. \nFor help use -> !' + this.options.commandPrefix + ' help');
                 return;
             }
 
             teamInput = commandSplit[0];
-            const potentialIDs = commandSplit.slice(1);
-
-            squadIDs = potentialIDs;
+            squadIDs = commandSplit.slice(1);
             teamID = await this.getTeamIdFromInput(teamInput, info);
             if (teamID === null) {
                 return;
@@ -195,6 +188,11 @@ export default class Claim extends BasePlugin {
             // own team
             squadIDs = commandSplit;
             teamID = info.player.teamID;
+        }
+
+        if (squadIDs.some(s => isNaN(s))) {
+            this.server.rcon.warn(info.steamID, 'Invalid squad ID provided. \nFor help use -> !' + this.options.commandPrefix + ' help');
+            return;
         }
 
         // validate squad IDs
