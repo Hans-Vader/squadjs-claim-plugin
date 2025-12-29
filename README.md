@@ -56,7 +56,7 @@ Compare X number of squads of a specific team or simply for the opposing team wi
 - `commandPrefix` (string, default: `"claim"`): Chat command prefix.
 - `onlySquadLeader` (boolean, default: `false`): If `true`, only squad leaders can use the command (admins are always allowed, but still respect the admin cooldown).
 - `adminCooldownSeconds` (number, default: e.g. `3`): cooldown in seconds between usages in admin chat.
-- `playerCooldownSeconds` (number, default: e.g. `6`): cooldown in seconds for non-admin players between usages.
+- `playerCooldownSeconds` (number, default: e.g. `5`): cooldown in seconds for non-admin players between usages.
 
 ### Example configuration
 ```json
@@ -66,6 +66,6 @@ Compare X number of squads of a specific team or simply for the opposing team wi
   "commandPrefix": "claim",
   "onlySquadLeader": false,
   "adminCooldownSeconds": 3,
-  "playerCooldownSeconds": 6
+  "playerCooldownSeconds": 5
 }
 ```
